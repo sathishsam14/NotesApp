@@ -8,27 +8,41 @@ const secretKey = 'noteToken';
 
 // Register Route
 router.post('/register', (request, response) => {
-   
-    const { username, email, password } = request.body;
+  const { username, email, password } = request.body;
   
-    const hashedPassword = bcrypt.hashSync(password, 8);
+  const checkUserQuery = `SELECT * FROM users WHERE email = ?`;
   
-    const query = `
-    INSERT INTO 
-    users (username, email, password)
-     VALUES 
-     (?, ?, ?)`;
-   const value =  [username, email, hashedPassword]
-
-    db.run(query,value, function(err) {
-      if (err) {
-        // If there is an error, send a 400 status with the error message
-        return response.status(401).json({ error: err.message });
-      }
-      response.status(200).json({ message: 'User created successfully' });
-    });
+  db.get(checkUserQuery, [email], (err, row) => {
+    if (err) {
+      return response.status(401).json({ error: 'Database error' });
+    }
+    
+    if (row) {
+    
+       response.status(400).json({ message: 'User already registered' });
+    } else {
+  
+      const hashedPassword = bcrypt.hashSync(password, 8);
+      
+      const insertUserQuery = `
+        INSERT INTO 
+        users (username, email, password)
+        VALUES 
+        (?, ?, ?)`;
+      
+      const values = [username, email, hashedPassword];
+      
+      db.run(insertUserQuery, values, function(err) {
+        if (err) {
+          return response.status(401).json({ error: 'Error creating user' });
+        }
+        response.status(200).json({ message: 'User created successfully' });
+      });
+    }
   });
-  
+});
+
+module.exports = router;
 
 
 // Login Route

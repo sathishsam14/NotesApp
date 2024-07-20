@@ -1,24 +1,15 @@
 const jwt = require('jsonwebtoken');
-const secretKey = 'noteToken'; 
+const secret = 'noteToken'; // Replace with your actual secret key
 
+module.exports = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
 
-const authenticate = (request, response, next) => {
-  
-  const token = request.header('Authorization')?.replace('Bearer ', '');
- 
-  if (!token) {
-    return response.status(401).json({ error: 'Not authorized' });
-  }
+  if (token == null) return res.status(401).json({ error: 'No token provided' });
 
-  try {
-    const decoded = jwt.verify(token, secretKey);
-    request.userId = decoded.id;
-
+  jwt.verify(token, secret, (err, user) => {
+    if (err) return res.status(403).json({ error: 'Invalid token' });
+    req.user = user;
     next();
-  } catch (error) {
-    
-    response.status(401).json({ error: 'Invalid token' });
-  }
+  });
 };
-
-module.exports = authenticate;
